@@ -23,7 +23,7 @@ header{position:sticky;top:0;z-index:30;background:#0b1424ee;backdrop-filter:blu
 .bar{display:flex;align-items:center;gap:14px;padding:10px 22px;flex-wrap:wrap}
 .brand{font-weight:900;font-size:17px;letter-spacing:.2px;white-space:nowrap}.brand b{color:var(--teal)}.brand small{display:block;font-weight:500;color:var(--mut);font-size:11px;letter-spacing:0}
 nav{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
-nav button{background:transparent;border:1px solid transparent;color:var(--mut);padding:8px 14px;border-radius:999px;cursor:pointer;font-weight:600}
+nav button{white-space:nowrap;flex:none;background:transparent;border:1px solid transparent;color:var(--mut);padding:8px 14px;border-radius:999px;cursor:pointer;font-weight:600}
 nav button:hover{background:var(--card)}nav button.on{background:var(--ac);color:#fff}
 main{max-width:1280px;margin:0 auto;padding:22px}
 h2{margin:0 0 14px;font-size:20px}h2 small{color:var(--mut);font-weight:500;font-size:13px;margin-left:8px}
@@ -69,7 +69,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .note{background:#18325a;border-radius:12px;padding:10px 14px;color:#cfe0f8;font-size:13px;margin-bottom:14px}
 .mut{color:var(--mut)}
 .foot{margin:40px 0 20px;text-align:center}.foot span{display:inline-flex;gap:10px;align-items:center;padding:9px 18px;border-radius:999px;background:linear-gradient(135deg,#1b2540,#2c3e75);font-weight:800;font-size:13px}.foot i{font-style:normal;background:var(--ac);border-radius:6px;padding:2px 7px;font-size:11px}.foot b{color:#8fb4ff}
-@media(max-width:900px){.g4,.g3,.g2,.g21{grid-template-columns:1fr 1fr}.lay{grid-template-columns:1fr}.side{position:static;max-height:260px}main{padding:14px}nav{margin-left:0;width:100%;overflow-x:auto;flex-wrap:nowrap}.cal .dc{min-height:72px}}
+@media(max-width:900px){.g4,.g3,.g2,.g21{grid-template-columns:1fr 1fr}.lay{grid-template-columns:1fr}.side{position:static;max-height:260px}main{padding:14px}nav{margin-left:0;width:100%;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;padding-bottom:2px}nav::-webkit-scrollbar{display:none}.cal .dc{min-height:72px}}
 @media(max-width:560px){.g4,.g3,.g2,.g21{grid-template-columns:1fr}.cal .ev{font-size:10px}}
 </style>
 </head>
