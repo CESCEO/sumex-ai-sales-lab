@@ -11,7 +11,7 @@
   var TODAY = ymd(new Date());
   var TYPES = ["선납", "판매", "마감", "가납", "가납랜딩", "교환", "샘플", "납품", "데모", "수리", "견적서", "서류등록"];
   var CATS = ["납품", "데모", "수리", "교환", "견적서", "서류등록", "기타"];
-  var NAVS = [["dash", "대시보드"], ["journal", "영업 일지"], ["hosp", "병원별"], ["cal", "캘린더"], ["todo", "할 일"], ["target", "매출 목표"], ["deliv", "납품·간납사"], ["docs", "서류"], ["lion", "청담리온"]];
+  var NAVS = [["dash", "대시보드"], ["journal", "영업 일지"], ["hosp", "병원별"], ["cal", "캘린더"], ["todo", "할 일"], ["target", "매출 목표"], ["deliv", "납품·간납사"], ["docs", "서류"], ["lion", "청담리온"], ["clinic", "외래일정"]];
   var S = { view: "dash", date: null, h: "", ty: [], q: "", hsel: null, htab: "time", from: "", to: "", cm: TODAY.slice(0, 7), cd: TODAY, tm: "", dty: "", itemq: "", docq: "", docty: "", dh: "" };
 
   function ls(k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
@@ -219,15 +219,39 @@
   }
 
   /* ---------- render & events ---------- */
-  var VIEWS = { dash: vDash, journal: vJournal, hosp: vHosp, cal: vCal, todo: vTodo, target: vTarget, deliv: vDeliv, docs: vDocs, lion: vLion };
+  function vClinic() {
+    var C = D.clinic || { doctors: [], coverage: {} }, all = C.doctors || [];
+    var hs = []; all.forEach(function (x) { if (hs.indexOf(x.h) < 0) hs.push(x.h); }); Object.keys(C.coverage || {}).forEach(function (h) { if (hs.indexOf(h) < 0) hs.push(h); }); hs.sort();
+    var hsel = S.ch || "", dsel = S.cdd || TODAY, dep = S.cdep || "", q = (S.cq || "").trim().toLowerCase(), w = DOW[new Date(dsel + "T00:00:00").getDay()];
+    var deps = []; all.forEach(function (x) { if ((!hsel || x.h === hsel) && deps.indexOf(x.dept) < 0) deps.push(x.dept); }); deps.sort();
+    var drs = all.filter(function (x) { return (!hsel || x.h === hsel) && (!dep || x.dept === dep) && (!q || (x.dr + " " + (x.spec || "") + " " + x.h + " " + x.dept).toLowerCase().indexOf(q) >= 0); });
+    var on = drs.filter(function (x) { return x.slots && x.slots[w]; });
+    var wk = []; var base = new Date(dsel + "T00:00:00"); for (var i = 0; i < 7; i++) { wk.push(new Date(base.getTime() + (i - ((base.getDay() + 6) % 7)) * 864e5)); }
+    var slot = function (v) { return v === "AM" ? "오전" : v === "PM" ? "오후" : v === "AM+PM" ? "종일" : v; };
+    var known = drs.filter(function (x) { return x.slots && Object.keys(x.slots).length; }).length;
+    var byH = {}; on.forEach(function (x) { (byH[x.h] = byH[x.h] || []).push(x); });
+    var covHtml = hs.map(function (h) { var n = all.filter(function (x) { return x.h === h; }).length; return '<div class="row" style="cursor:pointer" data-chh="' + esc(h) + '"><div class="tm">' + n + '명</div><div><b>' + esc(h) + '</b><div class="sum">' + esc((C.coverage || {})[h] || "미수집") + "</div></div></div>"; }).join("");
+    return '<h2>외래일정<small>거래처 병원 · 과 · 의사별 외래진료 조회 (홈페이지 주간 시간표 기준)</small></h2>' +
+      '<div class="note">각 병원 홈페이지의 주간 외래 시간표를 모아 날짜에 맞춰 보여줘요. 휴진·격주·학회·대진은 반영되지 않으니 방문 전 병원에 확인하세요. 수집일 ' + esc(C.checked || "") + ' · 병원 ' + hs.length + '곳 · 의료진 ' + all.length + '명</div>' +
+      '<div class="tools"><select class="f" id="chs"><option value="">전체 병원</option>' + hs.map(function (h) { return "<option" + (h === hsel ? " selected" : "") + ">" + esc(h) + "</option>"; }).join("") + '</select>' +
+      '<select class="f" id="cdep"><option value="">전체 과</option>' + deps.map(function (d) { return "<option" + (d === dep ? " selected" : "") + ">" + esc(d) + "</option>"; }).join("") + '</select>' +
+      '<input class="f" id="cq" placeholder="의사명·전문분야 검색" value="' + esc(S.cq || "") + '"><input class="f" type="date" id="cdd" value="' + esc(dsel) + '">' + (hsel ? '<span class="bd">' + esc((C.coverage || {})[hsel] || "미수집") + "</span>" : "") + "</div>" +
+      '<div class="card" style="margin-bottom:12px"><h3>' + esc(dsel) + " (" + w + ") 외래 진료 · " + on.length + "명</h3>" +
+      (Object.keys(byH).sort().map(function (h) { return '<div class="mut" style="margin:10px 0 4px;font-weight:700">' + esc(h) + "</div>" + byH[h].map(function (x) { return '<div class="row"><div class="tm">' + slot(x.slots[w]) + "</div><div><b>" + esc(x.dr) + "</b> " + (x.title ? '<span class="mut">' + esc(x.title) + "</span> " : "") + '<span class="mut">· ' + esc(x.dept) + (x.note ? " · " + esc(x.note) : "") + '</span><div class="sum">' + esc(x.spec || "") + "</div></div></div>"; }).join(""); }).join("") || '<div class="mut">' + (drs.length ? "선택한 날짜에 외래가 확인된 의료진이 없어요." : "조건에 맞는 의료진이 없어요.") + "</div>") + "</div>" +
+      '<div class="card" style="overflow:auto;margin-bottom:12px"><h3>주간 외래표 · ' + drs.length + "명 (요일 확인 " + known + "명)</h3><table><thead><tr>" + (hsel ? "" : "<th>병원</th>") + "<th>과</th><th>의료진</th>" + ["월", "화", "수", "목", "금", "토"].map(function (d, i) { return "<th" + (d === w ? ' style="background:#e8f1ff"' : "") + ">" + d + '<br><span class="mut">' + (wk[i].getMonth() + 1) + "/" + wk[i].getDate() + "</span></th>"; }).join("") + "<th>전문분야</th></tr></thead><tbody>" +
+      drs.map(function (x) { return "<tr>" + (hsel ? "" : "<td>" + esc(x.h) + "</td>") + "<td>" + esc(x.dept) + "</td><td><b>" + esc(x.dr) + "</b>" + (x.title ? '<div class="mut">' + esc(x.title) + "</div>" : "") + "</td>" + ["월", "화", "수", "목", "금", "토"].map(function (d) { return "<td>" + (x.slots && x.slots[d] ? '<span class="bd t-데모">' + slot(x.slots[d]) + "</span>" : "") + "</td>"; }).join("") + '<td class="mut" style="font-size:12px">' + esc(x.spec || "") + (x.note ? "<br>" + esc(x.note) : "") + (x.src ? '<br><a href="' + esc(/^https?:/.test(x.src) ? x.src : "https://" + x.src) + '" target="_blank" rel="noopener">출처</a>' : "") + "</td></tr>"; }).join("") + "</tbody></table></div>" +
+      '<div class="card"><h3>병원별 수집 현황</h3>' + covHtml + "</div>";
+  }
+  var VIEWS = { dash: vDash, journal: vJournal, hosp: vHosp, cal: vCal, todo: vTodo, target: vTarget, deliv: vDeliv, docs: vDocs, lion: vLion, clinic: vClinic };
   function render() {
     $("#nav").innerHTML = NAVS.map(function (n) { return '<button data-v="' + n[0] + '" class="' + (S.view === n[0] ? "on" : "") + '">' + n[1] + "</button>"; }).join("");
     $("#main").innerHTML = VIEWS[S.view]() + '<div class="foot"><span><i>AI</i> SUMEX <b>최은성의 AI SALES LAB</b></span><div class="mut" style="margin-top:8px;font-size:12px">데이터 기준 ' + esc((D.built || "").slice(0, 16).replace("T", " ")) + "</div></div>";
   }
   function bind() {
     document.addEventListener("click", function (e) {
-      var t = e.target.closest("[data-v],[data-ch],[data-date],[data-h],[data-htab],[data-cd],[data-cm],[data-doc],[data-more],[data-dty],[data-itm],[data-tdel],#na,#tgx,#tgi");
+      var t = e.target.closest("[data-chh],[data-v],[data-ch],[data-date],[data-h],[data-htab],[data-cd],[data-cm],[data-doc],[data-more],[data-dty],[data-itm],[data-tdel],#na,#tgx,#tgi");
       if (!t) return;
+      if (t.dataset.chh) { S.ch = t.dataset.chh; S.cdep = ""; render(); window.scrollTo(0, 0); return; }
       if (t.dataset.v) { S.view = t.dataset.v; S.ty = []; S.q = ""; render(); window.scrollTo(0, 0); }
       else if (t.dataset.ch) { var v = t.dataset.v, i = S.ty.indexOf(v); if (i >= 0) S.ty.splice(i, 1); else S.ty.push(v); render(); }
       else if (t.dataset.date) { S.date = t.dataset.date; render(); }
@@ -246,7 +270,8 @@
     });
     document.addEventListener("change", function (e) {
       var t = e.target;
-      if (t.id === "fh") { S.h = t.value; render(); } else if (t.id === "dhs") { S.dh = t.value; render(); }
+      if (t.id === "chs") { S.ch = t.value; S.cdep = ""; render(); } else if (t.id === "cdep") { S.cdep = t.value; render(); } else if (t.id === "cdd") { S.cdd = t.value; render(); }
+      else if (t.id === "fh") { S.h = t.value; render(); } else if (t.id === "dhs") { S.dh = t.value; render(); }
       else if (t.id === "fd") { S.date = t.value; render(); } else if (t.id === "ff") { S.from = t.value; render(); } else if (t.id === "ft") { S.to = t.value; render(); }
       else if (t.id === "dty") { S.docty = t.value; render(); }
       else if (t.dataset && t.dataset.td) { var st = ls("lab_todo", { done: {}, del: {}, custom: [] }); st.done[t.dataset.td] = t.checked ? 1 : 0; ss("lab_todo", st); render(); }
@@ -254,7 +279,7 @@
     });
     document.addEventListener("input", function (e) {
       var t = e.target, f = null;
-      if (t.id === "fq") { S.q = t.value; f = "fq"; } else if (t.id === "fiq") { S.itemq = t.value; f = "fiq"; } else if (t.id === "dq") { S.docq = t.value; f = "dq"; }
+      if (t.id === "fq") { S.q = t.value; f = "fq"; } else if (t.id === "fiq") { S.itemq = t.value; f = "fiq"; } else if (t.id === "dq") { S.docq = t.value; f = "dq"; } else if (t.id === "cq") { S.cq = t.value; f = "cq"; }
       if (f) { var pos = t.selectionStart; render(); var el = document.getElementById(f); if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch (x) {} } }
     });
   }
